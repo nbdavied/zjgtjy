@@ -40,6 +40,17 @@ def getStatus(id):
             status = "0"
     return status
 
+def loadDbConfig():
+    with open(db.config) as config_file:
+        configs = config_file.readlines()
+        for config in configs:
+            if config[-1] == '\n':
+                config = config[:-1]
+            key_value = config.split('=')
+            key = key_value[0]
+            value = key_value[1]
+            DB_CONFIG[key] = value
+
 # 选择查询区域，获得cookie
 # nb_url = "http://land.zjgtjy.cn/GTJY_ZJ/runtime_prj?canton=330200"
 # response, header_cookie = httpUtil.http_get_cookie(nb_url, charset="gbk")
@@ -53,7 +64,7 @@ def getStatus(id):
 
 
 
-
+loadDbConfig()
 CONN = mysql.connector.connect(user=DB_CONFIG['user'],
                                password=DB_CONFIG['password'],
                                host=DB_CONFIG['host'],
