@@ -6,9 +6,7 @@ list_url = "http://land.zjgtjy.cn/GTJY_ZJ/deala_js_action?resourcelb=01&dealtype
 detail_url = "http://land.zjgtjy.cn/GTJY_ZJ/landinfo?ResourceID="
 time_url = "http://land.zjgtjy.cn/GTJY_ZJ/time?id="
 
-START_PAGE = 1
-END_PAGE = 50
-DB_CONFIG={}
+CONFIG={}
 def getValueFromPage(key, page):
     """
     从页面获取数据
@@ -40,16 +38,25 @@ def getStatus(id):
             status = "0"
     return status
 
+def formatTimeToDate(t):
+    if t == "":
+        return ""
+    tdate = t[0, 11]
+    ftime = time.strptime(tdate, "%Y年%m月%d日")
+    return time.strftime("%Y-%m-%d", ftime)
+
 def loadDbConfig():
     with open(db.config) as config_file:
         configs = config_file.readlines()
         for config in configs:
+            if config[0] == '#':
+                continue
             if config[-1] == '\n':
                 config = config[:-1]
             key_value = config.split('=')
             key = key_value[0]
             value = key_value[1]
-            DB_CONFIG[key] = value
+            CONFIG[key] = value
 
 # 选择查询区域，获得cookie
 # nb_url = "http://land.zjgtjy.cn/GTJY_ZJ/runtime_prj?canton=330200"
@@ -65,17 +72,17 @@ def loadDbConfig():
 
 
 loadDbConfig()
-CONN = mysql.connector.connect(user=DB_CONFIG['user'],
-                               password=DB_CONFIG['password'],
-                               host=DB_CONFIG['host'],
-                               database=DB_CONFIG['database'])
+CONN = mysql.connector.connect(user=CONFIG['user'],
+                               password=CONFIG['password'],
+                               host=CONFIG['host'],
+                               database=CONFIG['database'])
 CURSOR = CONN.cursor()
 #查询未结束交易状态
 def checkStatus():
-	CONN2 = mysql.connector.connect(user=DB_CONFIG['user'],
-                               password=DB_CONFIG['password'],
-                               host=DB_CONFIG['host'],
-                               database=DB_CONFIG['database'])
+	CONN2 = mysql.connector.connect(user=CONFIG['user'],
+                               password=CONFIG['password'],
+                               host=CONFIG['host'],
+                               database=CONFIG['database'])
 	update = CONN2.cursor()
 	sql = "select id from zjgtjy where status = '0'"
 	CURSOR.execute(sql)
@@ -110,7 +117,7 @@ def checkStatus():
 	CONN2.close()
 	
 checkStatus()
-for i in range(START_PAGE, END_PAGE + 1):
+for i in range(CONFIG['start_page'], CONFIG['end_page'] + 1):
     print("\r\n-------------------开始查询第" + str(i) + "页---------------------\r\n")
     #list_page = httpUtil.http_get(list_url + str(i),charset="gbk", cookie=session)
     list_page = httpUtil.http_get(list_url + str(i),charset="gbk")
@@ -200,7 +207,46 @@ for i in range(START_PAGE, END_PAGE + 1):
             cjsj = cjsj + jssj
             cjj = cjj + zgbj
             jddw = jddw + zgbjdw
+        # 所有地块成交时间
+        sydkcjsj = formatTimeToDate(jj_start_time) if gp_stop_time == "" else formatTimeToDate(gp_stop_time)
+        # 已成交地块成交时间
+        ycjdkcjsj = formatTimeToDate(cjsj)
+        # 土地面积(万方)
+        tdmj = float(crmj) / 10000
+        # 计容建面(万方)
+        jrjm = tdmj * float(rjl)
+        # 起拍楼面价(元/平)
+        qplmj = 0.0
+        if qsj[-2:] == "万元":
+            qplmj = float(qsj[:-2].replace(",",""))
+        else:
+            qplmj = float(qsj.replace("元/建筑平方米", "").replace("元/平方米", "").replace(",", ""))
+        # 起拍总价
+        qpzj = jrjm * qplmj
+        # 成交楼面价
+        cjlmj = 0
+        if status == "2":
+            cjlmj = -1
+        elif status == "1":
+            if cjj[-2:] == "万元":
+                cjlmj = float(cjj[:-2].replace(",", "")) / jrjm
+            else:
+                cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
+        # 成交总价
+        cjzj = 0
+        if cjlmj <=0:
+            cjzj = cjlmj
+        else:
+            cjzj = cjlmj * jrjm
+        # 溢价率
+        yjl = 0
+        if cjlmj <= 0:
+            yjl = cjlmj
+        else:
+            yjl = (cjlmj / qplmj) - 1
         
+
+
         sql = ("insert into zjgtjy ("
                 "id, dkbh, gp_start_time, gp_stop_time, pm_start_time,"
                 "jj_start_time, bm_start_time, bm_stop_time, bzj_stop_time,"
