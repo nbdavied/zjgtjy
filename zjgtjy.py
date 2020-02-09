@@ -84,11 +84,12 @@ def checkStatus():
                                host=CONFIG['host'],
                                database=CONFIG['database'])
 	update = CONN2.cursor()
-	sql = "select id from zjgtjy where status = '0'"
+	sql = "select id,jrjm from zjgtjy where status = '0'"
 	CURSOR.execute(sql)
 	row = CURSOR.fetchone()
 	while row:
 	    id = str(row[0])
+        jrjm = row[1]
 	    status = getStatus(id)
 	    if status == "1":
 	        detail_page = httpUtil.http_get(detail_url + id, charset="gbk")
@@ -105,7 +106,21 @@ def checkStatus():
 	        cjsj = cjsj + jssj
 	        cjj = cjj + zgbj
 	        jddw = jddw + zgbjdw
-	        sql = "update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1' where id = %s" % (cjsj, cjj, jddw, id)
+            # 以下是需要重新计算的数据
+            # 已成交地块成交时间
+            ycjdkcjsj = formatTimeToDate(cjsj)
+            # 成交楼面价
+            cjlmj = 0
+            if status == "2":
+                cjlmj = -1
+            elif status == "1":
+                if cjj[-2:] == "万元":
+                    cjlmj = float(cjj[:-2].replace(",", "")) / jrjm
+                else:
+                    cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
+
+	        sql = ("update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1', "
+                    "ycjdkcjsj = '%s', cjlmj = %f where id = %s") % (cjsj, cjj, jddw, ycjdkcjsj, cjlmj, id)
 	        update.execute(sql)
 	        CONN2.commit()
 	    elif status == "2":
@@ -252,15 +267,18 @@ for i in range(CONFIG['start_page'], CONFIG['end_page'] + 1):
                 "jj_start_time, bm_start_time, bm_stop_time, bzj_stop_time,"
                 "have_dj, dkmc, tdwz, tdyt, rjl, ssxzq, crmj, crnx, qsj, bzj,"
                 "zjfd, tzqd, jmrtj, lxr, lxrdh, lxrdz, zgxj, tbzgzcbl,"
-                "tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status) "
+                "tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status,"
+                "sydkcjsj, ycjdkcjsj, tdmj, jrjm, qplmj, qpzj, cjlmj, cjzj, yjl) "
                 "values(%s, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',"
                 "'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',"
                 "'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',"
-                "'%s', '%s', '%s', '%s', '%s')") % (id, dkbh, gp_start_time, gp_stop_time, pm_start_time,
+                "'%s', '%s', '%s', '%s', '%s',"
+                "'%s', '%s', %f, %f, %f, %f, %f, %f, %f)") % (id, dkbh, gp_start_time, gp_stop_time, pm_start_time,
                                                                 jj_start_time, bm_start_time, bm_stop_time, bzj_stop_time,
                                                                 have_dj, dkmc, tdwz, tdyt, rjl, ssxzq, crmj, crnx, qsj, bzj,
                                                                 zjfd, tzqd, jmrtj, lxr, lxrdh, lxrdz, zgxj, tbzgzcbl,
-                                                                tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status)
+                                                                tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status,
+                                                                sydkcjsj, ycjdkcjsj, tdmj, jrjm, qplmj, qpzj, cjlmj, cjzj, yjl)
         CURSOR.execute(sql)
         CONN.commit()
         #break

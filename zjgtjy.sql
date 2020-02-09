@@ -60,3 +60,17 @@ CREATE TABLE `zjgtjy` (
   `status` char(1) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 SET FOREIGN_KEY_CHECKS=1;
+
+ALTER TABLE `zjgtjy`
+ADD COLUMN `sydkcjsj`  date NULL AFTER `status`,
+ADD COLUMN `ycjdkcjsj`  date NULL AFTER `sydkcjsj`,
+ADD COLUMN `tdmj`  decimal(20,6) NULL DEFAULT NULL AFTER `ycjdkcjsj`,
+ADD COLUMN `jrjm`  decimal(20,6) NULL AFTER `tdmj`,
+ADD COLUMN `qplmj`  decimal(20,6) NULL AFTER `jrjm`,
+ADD COLUMN `qpzj`  decimal(20,6) NULL AFTER `qplmj`,
+ADD COLUMN `cjlmj`  decimal(20,6) NULL AFTER `qpzj`,
+ADD COLUMN `cjzj`  decimal(20,6) NULL AFTER `cjlmj`,
+ADD COLUMN `yjl`  decimal(20,6) NULL AFTER `cjzj`,
+ADD COLUMN `zzbl`  decimal(20,6) NULL AFTER `yjl`,
+ADD COLUMN `zzjm`  decimal(20,6) NULL AFTER `zzbl`;
+
