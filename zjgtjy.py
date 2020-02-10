@@ -1,6 +1,7 @@
 import httpUtil
 import re
 import mysql.connector
+import time
 
 list_url = "http://land.zjgtjy.cn/GTJY_ZJ/deala_js_action?resourcelb=01&dealtype=&JYLB=&JYFS=&JYZT=&RESOURCENO=&RESOURCEMC=&endDate=&ZYWZ=&zylb=01&currentPage="
 detail_url = "http://land.zjgtjy.cn/GTJY_ZJ/landinfo?ResourceID="
@@ -41,7 +42,7 @@ def getStatus(id):
 def formatTimeToDate(t):
     if t == "":
         return ""
-    tdate = t[0, 11]
+    tdate = t[0:11]
     ftime = time.strptime(tdate, "%Y年%m月%d日")
     return time.strftime("%Y-%m-%d", ftime)
 
@@ -84,12 +85,13 @@ def checkStatus():
                                host=CONFIG['host'],
                                database=CONFIG['database'])
     update = CONN2.cursor()
-    sql = "select id,jrjm from zjgtjy where status = '0'"
+    sql = "select id,jrjm, qplmj from zjgtjy where status = '0'"
     CURSOR.execute(sql)
     row = CURSOR.fetchone()
     while row:
         id = str(row[0])
-        jrjm = row[1]
+        jrjm = float(row[1])
+        qplmj = float(row[2])
         status = getStatus(id)
         if status == "1":
             detail_page = httpUtil.http_get(detail_url + id, charset="gbk")
@@ -114,13 +116,22 @@ def checkStatus():
             if status == "2":
                 cjlmj = -1
             elif status == "1":
-                if cjj[-2:] == "万元":
-                    cjlmj = float(cjj[:-2].replace(",", "")) / jrjm
+                if len(re.findall("\d[\d,]*万元.*",cjj)) > 0:
+                    ncjj = re.findall('(\d[\d,]*?)万元',cjj)[0]
+                    cjlmj = float(ncjj.replace(",", "")) / jrjm
                 else:
-                    cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
+                    ncjj = re.findall('(\d[\d,]*)', cjj)[0]
+                    cjlmj = float(ncjj.replace(",", ""))
+            cjzj = 0
+            if cjlmj <= 0:
+                cjzj = cjlmj
+            else cjzj = cjlmj * jrjm
+            if cjlmj <= 0:
+                yjl = cjlmj
+            else yjl = (cjlmj / qplmj) - 1
 
             sql = ("update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1', "
-                    "ycjdkcjsj = '%s', cjlmj = %f where id = %s") % (cjsj, cjj, jddw, ycjdkcjsj, cjlmj, id)
+                    "ycjdkcjsj = '%s', cjlmj = %f, cjzj = %f, yjl = %f where id = %s") % (cjsj, cjj, jddw, ycjdkcjsj, cjlmj, cjzj, yjl, id)
             update.execute(sql)
             CONN2.commit()
         elif status == "2":
@@ -130,8 +141,9 @@ def checkStatus():
         row = CURSOR.fetchone()
     update.close()
     CONN2.close()
-    
-checkStatus()
+
+if CONFIG["check_status"] == '1':
+    checkStatus()
 for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
     print("\r\n-------------------开始查询第" + str(i) + "页---------------------\r\n")
     #list_page = httpUtil.http_get(list_url + str(i),charset="gbk", cookie=session)
@@ -244,10 +256,12 @@ for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
             jrjm = tdmj * float(rjl)
             # 起拍楼面价(元/平)
             qplmj = 0.0
-            if qsj[-2:] == "万元":
-                qplmj = float(qsj[:-2].replace(",",""))
+            if len(re.findall("\d[\d,]*万元.*",qsj)) > 0:
+                nqsj = re.findall('(\d[\d,]*?)万元',qsj)[0]
+                qplmj = float(nqsj.replace(",",""))
             else:
-                qplmj = float(qsj.replace("元/建筑平方米", "").replace("元/平方米", "").replace(",", ""))
+                nqsj = re.findall('(\d[\d,]*)', qsj)[0]
+                qplmj = float(nqsj.replace(",", ""))
             # 起拍总价
             qpzj = jrjm * qplmj
             # 成交楼面价
@@ -255,10 +269,12 @@ for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
             if status == "2":
                 cjlmj = -1
             elif status == "1":
-                if cjj[-2:] == "万元":
-                    cjlmj = float(cjj[:-2].replace(",", "")) / jrjm
+                if len(re.findall("\d[\d,]*万元.*",cjj)) > 0:
+                    ncjj = re.findall('(\d[\d,]*?)万元',cjj)[0]
+                    cjlmj = float(ncjj.replace(",", "")) / jrjm
                 else:
-                    cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
+                    ncjj = re.findall('(\d[\d,]*)', cjj)[0]
+                    cjlmj = float(ncjj.replace(",", ""))
             # 成交总价
             cjzj = 0
             if cjlmj <=0:
@@ -280,19 +296,44 @@ for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
                 "jj_start_time, bm_start_time, bm_stop_time, bzj_stop_time,"
                 "have_dj, dkmc, tdwz, tdyt, rjl, ssxzq, crmj, crnx, qsj, bzj,"
                 "zjfd, tzqd, jmrtj, lxr, lxrdh, lxrdz, zgxj, tbzgzcbl,"
-                "tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status,"
-                "sydkcjsj, ycjdkcjsj, tdmj, jrjm, qplmj, qpzj, cjlmj, cjzj, yjl) "
+                "tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status) "
                 "values(%s, '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',"
                 "'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',"
                 "'%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s',"
-                "'%s', '%s', '%s', '%s', '%s',"
-                "'%s', '%s', %f, %f, %f, %f, %f, %f, %f)") % (id, dkbh, gp_start_time, gp_stop_time, pm_start_time,
+                "'%s', '%s', '%s', '%s', '%s')") % (id, dkbh, gp_start_time, gp_stop_time, pm_start_time,
                                                                 jj_start_time, bm_start_time, bm_stop_time, bzj_stop_time,
                                                                 have_dj, dkmc, tdwz, tdyt, rjl, ssxzq, crmj, crnx, qsj, bzj,
                                                                 zjfd, tzqd, jmrtj, lxr, lxrdh, lxrdz, zgxj, tbzgzcbl,
-                                                                tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status,
-                                                                sydkcjsj, ycjdkcjsj, tdmj, jrjm, qplmj, qpzj, cjlmj, cjzj, yjl)
+                                                                tbzccsbl, tbzcblfd, ptyfqsmj, tbptyffd, cjsj, cjj, jddw, status)
         CURSOR.execute(sql)
+        if sydkcjsj != "":
+            sql = "update zjgtjy set sydkcjsj = '%s' where id = %s" % (sydkcjsj, id)
+            CURSOR.execute(sql)
+        if ycjdkcjsj != "":
+            sql = "update zjgtjy set ycjdkcjsj = '%s' where id = %s" % (ycjdkcjsj, id)
+            CURSOR.execute(sql)
+        if tdmj != 0:
+            sql = "update zjgtjy set tdmj = %f where id = %s" % (tdmj, id)
+            CURSOR.execute(sql)
+        if jrjm != 0:
+            sql = "update zjgtjy set jrjm = %f where id = %s" % (jrjm, id)
+            CURSOR.execute(sql)
+        if qplmj != 0:
+            sql = "update zjgtjy set qplmj = %f where id = %s" % (qplmj, id)
+            CURSOR.execute(sql)
+        if qpzj != 0:
+            sql = "update zjgtjy set qpzj = %f where id = %s" % (qpzj, id)
+            CURSOR.execute(sql)
+        if cjlmj != 0:
+            sql = "update zjgtjy set cjlmj = %f where id = %s" % (cjlmj, id)
+            CURSOR.execute(sql)
+        if cjzj != 0:
+            sql = "update zjgtjy set cjzj = %f where id = %s" % (cjzj, id)
+            CURSOR.execute(sql)
+        if yjl != 0:
+            sql = "update zjgtjy set yjl = %f where id = %s" % (yjl, id)
+            CURSOR.execute(sql)
+        
         CONN.commit()
         #break
 
