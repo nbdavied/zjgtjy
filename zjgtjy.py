@@ -79,33 +79,33 @@ CONN = mysql.connector.connect(user=CONFIG['user'],
 CURSOR = CONN.cursor()
 #查询未结束交易状态
 def checkStatus():
-	CONN2 = mysql.connector.connect(user=CONFIG['user'],
+    CONN2 = mysql.connector.connect(user=CONFIG['user'],
                                password=CONFIG['password'],
                                host=CONFIG['host'],
                                database=CONFIG['database'])
-	update = CONN2.cursor()
-	sql = "select id,jrjm from zjgtjy where status = '0'"
-	CURSOR.execute(sql)
-	row = CURSOR.fetchone()
-	while row:
-	    id = str(row[0])
+    update = CONN2.cursor()
+    sql = "select id,jrjm from zjgtjy where status = '0'"
+    CURSOR.execute(sql)
+    row = CURSOR.fetchone()
+    while row:
+        id = str(row[0])
         jrjm = row[1]
-	    status = getStatus(id)
-	    if status == "1":
-	        detail_page = httpUtil.http_get(detail_url + id, charset="gbk")
-	        cjsj = getValueFromPage("成交时间", detail_page)
-	        cjj = getValueFromPage("成交价", detail_page)
-	        cjj = cjj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
-	        #print("成交价", cjj)
-	        jddw = getValueFromPage("竞得单位", detail_page)
-	        jssj = getValueFromPage("结束时间", detail_page)
-	        zgbj = getValueFromPage("最高报价", detail_page)
-	        zgbj = zgbj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
-	        #print("最高报价", zgbj)
-	        zgbjdw = getValueFromPage("最高报价单位", detail_page)
-	        cjsj = cjsj + jssj
-	        cjj = cjj + zgbj
-	        jddw = jddw + zgbjdw
+        status = getStatus(id)
+        if status == "1":
+            detail_page = httpUtil.http_get(detail_url + id, charset="gbk")
+            cjsj = getValueFromPage("成交时间", detail_page)
+            cjj = getValueFromPage("成交价", detail_page)
+            cjj = cjj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
+            #print("成交价", cjj)
+            jddw = getValueFromPage("竞得单位", detail_page)
+            jssj = getValueFromPage("结束时间", detail_page)
+            zgbj = getValueFromPage("最高报价", detail_page)
+            zgbj = zgbj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
+            #print("最高报价", zgbj)
+            zgbjdw = getValueFromPage("最高报价单位", detail_page)
+            cjsj = cjsj + jssj
+            cjj = cjj + zgbj
+            jddw = jddw + zgbjdw
             # 以下是需要重新计算的数据
             # 已成交地块成交时间
             ycjdkcjsj = formatTimeToDate(cjsj)
@@ -119,18 +119,18 @@ def checkStatus():
                 else:
                     cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
 
-	        sql = ("update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1', "
+            sql = ("update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1', "
                     "ycjdkcjsj = '%s', cjlmj = %f where id = %s") % (cjsj, cjj, jddw, ycjdkcjsj, cjlmj, id)
-	        update.execute(sql)
-	        CONN2.commit()
-	    elif status == "2":
-	        sql = "update zjgtjy set status = '2' where id = %s" % (id)
-	        update.execute(sql)
-	        CONN2.commit()
-	    row = CURSOR.fetchone()
-	update.close()
-	CONN2.close()
-	
+            update.execute(sql)
+            CONN2.commit()
+        elif status == "2":
+            sql = "update zjgtjy set status = '2' where id = %s" % (id)
+            update.execute(sql)
+            CONN2.commit()
+        row = CURSOR.fetchone()
+    update.close()
+    CONN2.close()
+    
 checkStatus()
 for i in range(CONFIG['start_page'], CONFIG['end_page'] + 1):
     print("\r\n-------------------开始查询第" + str(i) + "页---------------------\r\n")
