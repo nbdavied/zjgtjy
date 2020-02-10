@@ -125,10 +125,12 @@ def checkStatus():
             cjzj = 0
             if cjlmj <= 0:
                 cjzj = cjlmj
-            else cjzj = cjlmj * jrjm
+            else:
+                cjzj = cjlmj * jrjm
             if cjlmj <= 0:
                 yjl = cjlmj
-            else yjl = (cjlmj / qplmj) - 1
+            else:
+                yjl = (cjlmj / qplmj) - 1
 
             sql = ("update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1', "
                     "ycjdkcjsj = '%s', cjlmj = %f, cjzj = %f, yjl = %f where id = %s") % (cjsj, cjj, jddw, ycjdkcjsj, cjlmj, cjzj, yjl, id)
