@@ -46,7 +46,7 @@ def formatTimeToDate(t):
     return time.strftime("%Y-%m-%d", ftime)
 
 def loadDbConfig():
-    with open(db.config) as config_file:
+    with open('db.config', encoding='utf-8') as config_file:
         configs = config_file.readlines()
         for config in configs:
             if config[0] == '#':
@@ -132,7 +132,7 @@ def checkStatus():
     CONN2.close()
     
 checkStatus()
-for i in range(CONFIG['start_page'], CONFIG['end_page'] + 1):
+for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
     print("\r\n-------------------开始查询第" + str(i) + "页---------------------\r\n")
     #list_page = httpUtil.http_get(list_url + str(i),charset="gbk", cookie=session)
     list_page = httpUtil.http_get(list_url + str(i),charset="gbk")
