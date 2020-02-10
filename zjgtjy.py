@@ -170,7 +170,8 @@ for i in range(CONFIG['start_page'], CONFIG['end_page'] + 1):
             rjl = rjl.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
             rjl = re.findall("[<≤]容积率[<≤](.*?)$", rjl)[0]
         except:
-            pass
+            rjl = rjl.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
+            rjl = rjl = rjl.replace('<','').replace('≤','').replace('容积率','')
         ssxzq = getValueFromPage("所属行政区", detail_page)
         crmj = getValueFromPage("出让面积", detail_page)
         if crmj == "":
@@ -222,44 +223,56 @@ for i in range(CONFIG['start_page'], CONFIG['end_page'] + 1):
             cjsj = cjsj + jssj
             cjj = cjj + zgbj
             jddw = jddw + zgbjdw
-        # 所有地块成交时间
-        sydkcjsj = formatTimeToDate(jj_start_time) if gp_stop_time == "" else formatTimeToDate(gp_stop_time)
-        # 已成交地块成交时间
-        ycjdkcjsj = formatTimeToDate(cjsj)
-        # 土地面积(万方)
-        tdmj = float(crmj) / 10000
-        # 计容建面(万方)
-        jrjm = tdmj * float(rjl)
-        # 起拍楼面价(元/平)
-        qplmj = 0.0
-        if qsj[-2:] == "万元":
-            qplmj = float(qsj[:-2].replace(",",""))
-        else:
-            qplmj = float(qsj.replace("元/建筑平方米", "").replace("元/平方米", "").replace(",", ""))
-        # 起拍总价
-        qpzj = jrjm * qplmj
-        # 成交楼面价
-        cjlmj = 0
-        if status == "2":
-            cjlmj = -1
-        elif status == "1":
-            if cjj[-2:] == "万元":
-                cjlmj = float(cjj[:-2].replace(",", "")) / jrjm
-            else:
-                cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
-        # 成交总价
-        cjzj = 0
-        if cjlmj <=0:
-            cjzj = cjlmj
-        else:
-            cjzj = cjlmj * jrjm
-        # 溢价率
-        yjl = 0
-        if cjlmj <= 0:
-            yjl = cjlmj
-        else:
-            yjl = (cjlmj / qplmj) - 1
         
+        sydkcjsj = ''
+        ycjdkcjsj = ''
+        tdmj = 0
+        jrjm = 0
+        qplmj = 0
+        qpzj = 0
+        cjlmj = 0
+        cjzj = 0
+        yjl = 0
+        try:
+            # 所有地块成交时间
+            sydkcjsj = formatTimeToDate(jj_start_time) if gp_stop_time == "" else formatTimeToDate(gp_stop_time)
+            # 已成交地块成交时间
+            ycjdkcjsj = formatTimeToDate(cjsj)
+            # 土地面积(万方)
+            tdmj = float(crmj) / 10000
+            # 计容建面(万方)
+            jrjm = tdmj * float(rjl)
+            # 起拍楼面价(元/平)
+            qplmj = 0.0
+            if qsj[-2:] == "万元":
+                qplmj = float(qsj[:-2].replace(",",""))
+            else:
+                qplmj = float(qsj.replace("元/建筑平方米", "").replace("元/平方米", "").replace(",", ""))
+            # 起拍总价
+            qpzj = jrjm * qplmj
+            # 成交楼面价
+            cjlmj = 0
+            if status == "2":
+                cjlmj = -1
+            elif status == "1":
+                if cjj[-2:] == "万元":
+                    cjlmj = float(cjj[:-2].replace(",", "")) / jrjm
+                else:
+                    cjlmj = float(cjj.replace("元/建筑平方米", "").replace("元/平方米", "").replace("元/平米", "").replace(",", ""))
+            # 成交总价
+            cjzj = 0
+            if cjlmj <=0:
+                cjzj = cjlmj
+            else:
+                cjzj = cjlmj * jrjm
+            # 溢价率
+            yjl = 0
+            if cjlmj <= 0:
+                yjl = cjlmj
+            else:
+                yjl = (cjlmj / qplmj) - 1
+        except:
+            pass
 
 
         sql = ("insert into zjgtjy ("
