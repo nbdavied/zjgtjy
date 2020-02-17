@@ -94,6 +94,7 @@ def checkStatus():
             jrjm = float(row[1])
             qplmj = float(row[2])
         except:
+            row = CURSOR.fetchone()
             continue
         status = getStatus(id)
         if status == "1":
