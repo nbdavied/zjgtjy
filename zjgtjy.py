@@ -90,8 +90,11 @@ def checkStatus():
     row = CURSOR.fetchone()
     while row:
         id = str(row[0])
-        jrjm = float(row[1])
-        qplmj = float(row[2])
+        try:
+            jrjm = float(row[1])
+            qplmj = float(row[2])
+        except:
+            continue
         status = getStatus(id)
         if status == "1":
             detail_page = httpUtil.http_get(detail_url + id, charset="gbk")
@@ -109,32 +112,50 @@ def checkStatus():
             cjj = cjj + zgbj
             jddw = jddw + zgbjdw
             # 以下是需要重新计算的数据
-            # 已成交地块成交时间
-            ycjdkcjsj = formatTimeToDate(cjsj)
-            # 成交楼面价
+            ycjdkcjsj = ''
             cjlmj = 0
-            if status == "2":
-                cjlmj = -1
-            elif status == "1":
-                if len(re.findall("\d[\d,]*万元.*",cjj)) > 0:
-                    ncjj = re.findall('(\d[\d,]*?)万元',cjj)[0]
-                    cjlmj = float(ncjj.replace(",", "")) / jrjm
-                else:
-                    ncjj = re.findall('(\d[\d,]*)', cjj)[0]
-                    cjlmj = float(ncjj.replace(",", ""))
             cjzj = 0
-            if cjlmj <= 0:
-                cjzj = cjlmj
-            else:
-                cjzj = cjlmj * jrjm
-            if cjlmj <= 0:
-                yjl = cjlmj
-            else:
-                yjl = (cjlmj / qplmj) - 1
+            yjl = 0
+            try:
+                # 已成交地块成交时间
+                ycjdkcjsj = formatTimeToDate(cjsj)
+                # 成交楼面价
+                cjlmj = 0
+                if status == "2":
+                    cjlmj = -1
+                elif status == "1":
+                    if len(re.findall("\d[\d,]*万元.*",cjj)) > 0:
+                        ncjj = re.findall('(\d[\d,]*?)万元',cjj)[0]
+                        cjlmj = float(ncjj.replace(",", "")) / jrjm
+                    else:
+                        ncjj = re.findall('(\d[\d,]*)', cjj)[0]
+                        cjlmj = float(ncjj.replace(",", ""))
+                cjzj = 0
+                if cjlmj <= 0:
+                    cjzj = cjlmj
+                else:
+                    cjzj = cjlmj * jrjm
+                if cjlmj <= 0:
+                    yjl = cjlmj
+                else:
+                    yjl = (cjlmj / qplmj) - 1
+            except:
+                pass
 
-            sql = ("update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1', "
-                    "ycjdkcjsj = '%s', cjlmj = %f, cjzj = %f, yjl = %f where id = %s") % (cjsj, cjj, jddw, ycjdkcjsj, cjlmj, cjzj, yjl, id)
+            sql = "update zjgtjy set cjsj = '%s', cjj = '%s', jddw = '%s', status = '1' where id = %s " % (cjsj, cjj, jddw, id)
             update.execute(sql)
+            if ycjdkcjsj != "":
+                sql = "update zjgtjy set ycjdkcjsj = '%s' where id = %s" % (ycjdkcjsj, id)
+                CURSOR.execute(sql)
+            if cjlmj != 0:
+                sql = "update zjgtjy set cjlmj = %f where id = %s" % (cjlmj, id)
+                CURSOR.execute(sql)
+            if cjzj != 0:
+                sql = "update zjgtjy set cjzj = %f where id = %s" % (cjzj, id)
+                CURSOR.execute(sql)
+            if yjl != 0:
+                sql = "update zjgtjy set yjl = %f where id = %s" % (yjl, id)
+                CURSOR.execute(sql)
             CONN2.commit()
         elif status == "2":
             sql = "update zjgtjy set status = '2' where id = %s" % (id)
