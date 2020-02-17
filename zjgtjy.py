@@ -146,16 +146,16 @@ def checkStatus():
             update.execute(sql)
             if ycjdkcjsj != "":
                 sql = "update zjgtjy set ycjdkcjsj = '%s' where id = %s" % (ycjdkcjsj, id)
-                CURSOR.execute(sql)
+                update.execute(sql)
             if cjlmj != 0:
                 sql = "update zjgtjy set cjlmj = %f where id = %s" % (cjlmj, id)
-                CURSOR.execute(sql)
+                update.execute(sql)
             if cjzj != 0:
                 sql = "update zjgtjy set cjzj = %f where id = %s" % (cjzj, id)
-                CURSOR.execute(sql)
+                update.execute(sql)
             if yjl != 0:
                 sql = "update zjgtjy set yjl = %f where id = %s" % (yjl, id)
-                CURSOR.execute(sql)
+                update.execute(sql)
             CONN2.commit()
         elif status == "2":
             sql = "update zjgtjy set status = '2' where id = %s" % (id)
