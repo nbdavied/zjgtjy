@@ -104,6 +104,8 @@ def checkStatus():
             cjj = cjj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
             #print("成交价", cjj)
             jddw = getValueFromPage("竞得单位", detail_page)
+            if jddw == "":
+                jddw = getValueFromPage("竞得入选人", detail_page)
             jssj = getValueFromPage("结束时间", detail_page)
             zgbj = getValueFromPage("最高报价", detail_page)
             zgbj = zgbj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
@@ -248,6 +250,8 @@ for i in range(int(CONFIG['start_page']), int(CONFIG['end_page']) + 1):
         cjj = cjj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
         #print("成交价", cjj)
         jddw = getValueFromPage("竞得单位", detail_page)
+        if jddw == "":
+            jddw = getValueFromPage("竞得入选人", detail_page)
         jssj = getValueFromPage("结束时间", detail_page)
         zgbj = getValueFromPage("最高报价", detail_page)
         zgbj = zgbj.replace("\r","").replace("\n","").replace(" ","").replace("\t","")
